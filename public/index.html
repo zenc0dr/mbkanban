@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBKanban - Memory Bank Kanban Board</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+    <!--
+    CODEX_ISSUE: External script without integrity verification
+    PROBLEM: Relying on CDN scripts without integrity checks allows attackers to inject malicious code if the CDN is compromised.
+    IMPACT: Users could execute unauthorized scripts in their browsers.
+    SOLUTION: Pin the script version and include an integrity attribute or self-host the asset.
+    ALTERNATIVE: Bundle Tailwind during build time instead of loading from a CDN.
+    -->
     <script>
         tailwind.config = {
             theme: {
@@ -21,7 +28,14 @@
             }
         }
     </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!--
+    CODEX_ISSUE: CDN stylesheet missing crossorigin attribute
+    PROBLEM: Without crossorigin set, Subresource Integrity checks cannot be enforced, weakening supply-chain protections.
+    IMPACT: Browser cannot verify the stylesheet's authenticity.
+    SOLUTION: Added crossorigin="anonymous" to enable future SRI usage.
+    ALTERNATIVE: Host the stylesheet locally to avoid external dependencies.
+    -->
     <style>
         .task-card {
             transition: all 0.3s ease;
