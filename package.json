@@ -1,0 +1,27 @@
+{
+  "name": "mbkanban",
+  "version": "1.0.0",
+  "description": "Memory Bank Kanban Board - веб-приложение для управления задачами",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "tailwindcss -i ./src/input.css -o ./public/output.css --watch"
+  },
+  "keywords": ["kanban", "memory-bank", "tasks", "management"],
+  "author": "Rael",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "fs-extra": "^11.1.1",
+    "marked": "^9.1.6",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
+  }
+}

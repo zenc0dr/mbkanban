@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBKanban - Memory Bank Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'kanban-blue': '#3B82F6',
+                        'kanban-green': '#10B981',
+                        'kanban-yellow': '#F59E0B',
+                        'kanban-red': '#EF4444',
+                        'kanban-purple': '#8B5CF6',
+                        'kanban-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .task-card {
+            transition: all 0.3s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .kanban-column {
+            min-height: 500px;
+        }
+        .priority-critical { border-left: 4px solid #EF4444; }
+        .priority-high { border-left: 4px solid #F59E0B; }
+        .priority-medium { border-left: 4px solid #3B82F6; }
+        .priority-low { border-left: 4px solid #10B981; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <i class="fas fa-tasks text-2xl text-blue-600 mr-3"></i>
+                    <h1 class="text-2xl font-bold text-gray-900">MBKanban</h1>
+                    <span class="ml-2 text-sm text-gray-500">Memory Bank Kanban Board</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="project-selector" class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Проект:</label>
+                        <select id="project-select" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Выберите проект...</option>
+                        </select>
+                    </div>
+                    <div id="stats" class="flex items-center space-x-4 text-sm">
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                            <span id="total-tasks">0</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                            <span id="completed-tasks">0</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                            <span id="critical-tasks">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loading" class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Загрузка проектов...</p>
+            </div>
+        </div>
+
+        <!-- Kanban Board -->
+        <div id="kanban-board" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <!-- Waiting Column -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b bg-gray-50 rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-clock text-yellow-500 mr-2"></i>
+                            Ожидает
+                            <span id="waiting-count" class="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">0</span>
+                        </h3>
+                    </div>
+                    <div id="waiting-column" class="p-4 kanban-column">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- In Progress Column -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b bg-blue-50 rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-spinner text-blue-500 mr-2"></i>
+                            В работе
+                            <span id="in-progress-count" class="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">0</span>
+                        </h3>
+                    </div>
+                    <div id="in-progress-column" class="p-4 kanban-column">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Urgent Column -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b bg-red-50 rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                            Срочно
+                            <span id="urgent-count" class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">0</span>
+                        </h3>
+                    </div>
+                    <div id="urgent-column" class="p-4 kanban-column">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Completed Column -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b bg-green-50 rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            Завершено
+                            <span id="completed-count" class="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">0</span>
+                        </h3>
+                    </div>
+                    <div id="completed-column" class="p-4 kanban-column">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Cancelled Column -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b bg-gray-50 rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-times-circle text-gray-500 mr-2"></i>
+                            Отменено
+                            <span id="cancelled-count" class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded-full">0</span>
+                        </h3>
+                    </div>
+                    <div id="cancelled-column" class="p-4 kanban-column">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <i class="fas fa-folder-open text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Нет проектов</h3>
+            <p class="text-gray-600">Создайте проект в банке памяти для отображения задач</p>
+        </div>
+    </main>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 id="modal-title" class="text-xl font-semibold text-gray-900"></h3>
+                        <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="modal-content" class="space-y-4">
+                        <!-- Content will be loaded here -->
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button onclick="closeTaskModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            Закрыть
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
