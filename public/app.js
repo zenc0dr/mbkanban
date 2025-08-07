@@ -1,4 +1,16 @@
 // MBKanban App
+
+// Санитизация HTML для защиты от XSS
+function sanitizeHTML(str) {
+    return String(str).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
 class MBKanban {
     constructor() {
         this.currentProject = null;
@@ -16,6 +28,9 @@ class MBKanban {
     async loadProjects() {
         try {
             const response = await fetch('/api/projects');
+            if (!response.ok) {
+                throw new Error('Failed to load projects');
+            }
             this.projects = await response.json();
             this.populateProjectSelector();
         } catch (error) {
@@ -39,6 +54,9 @@ class MBKanban {
     async loadTasks(projectName) {
         try {
             const response = await fetch(`/api/projects/${projectName}/tasks`);
+            if (!response.ok) {
+                throw new Error('Failed to load tasks');
+            }
             this.tasks = await response.json();
             this.renderTasks();
             this.updateStats();
@@ -97,22 +115,28 @@ class MBKanban {
             'low': '🔶'
         };
 
+        const safeTitle = sanitizeHTML(task.title);
+        const safeDesc = sanitizeHTML(task.description || 'Нет описания');
+        const safeAssignee = sanitizeHTML(task.assignee || 'Не назначен');
+        const safeDeadline = task.deadline ? `<span>${sanitizeHTML(task.deadline)}</span>` : '';
+        const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+
         card.innerHTML = `
             <div class="flex justify-between items-start mb-2">
-                <h4 class="font-medium text-gray-900 text-sm">${task.title}</h4>
+                <h4 class="font-medium text-gray-900 text-sm">${safeTitle}</h4>
                 <span class="text-xs ${priorityColors[task.priority]} px-2 py-1 rounded-full">
                     ${priorityIcons[task.priority]}
                 </span>
             </div>
-            <p class="text-xs text-gray-600 mb-3 line-clamp-2">${task.description || 'Нет описания'}</p>
+            <p class="text-xs text-gray-600 mb-3 line-clamp-2">${safeDesc}</p>
             <div class="flex justify-between items-center text-xs text-gray-500">
-                <span>${task.assignee || 'Не назначен'}</span>
-                ${task.deadline ? `<span>${task.deadline}</span>` : ''}
+                <span>${safeAssignee}</span>
+                ${safeDeadline}
             </div>
             ${task.subtasks.length > 0 ? `
                 <div class="mt-2 text-xs text-gray-500">
                     <i class="fas fa-list-ul mr-1"></i>
-                    ${task.subtasks.filter(st => st.completed).length}/${task.subtasks.length} подзадач
+                    ${completedSubtasks}/${task.subtasks.length} подзадач
                 </div>
             ` : ''}
         `;
@@ -135,35 +159,39 @@ class MBKanban {
             { value: 'cancelled', label: '❌ Отменено', color: 'bg-gray-100 text-gray-800' }
         ];
 
+        const safeDesc = sanitizeHTML(task.description || 'Нет описания');
+        const safeAssignee = sanitizeHTML(task.assignee || 'Не назначен');
+        const safeDeadline = sanitizeHTML(task.deadline || 'Не установлен');
+
         content.innerHTML = `
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                    <p class="text-sm text-gray-600">${task.description || 'Нет описания'}</p>
+                    <p class="text-sm text-gray-600">${safeDesc}</p>
                 </div>
-                
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                     <select id="task-status" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        ${statusOptions.map(option => 
+                        ${statusOptions.map(option =>
                             `<option value="${option.value}" ${task.status === option.value ? 'selected' : ''}>
                                 ${option.label}
                             </option>`
                         ).join('')}
                     </select>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Исполнитель</label>
-                        <p class="text-sm text-gray-600">${task.assignee || 'Не назначен'}</p>
+                        <p class="text-sm text-gray-600">${safeAssignee}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Дедлайн</label>
-                        <p class="text-sm text-gray-600">${task.deadline || 'Не установлен'}</p>
+                        <p class="text-sm text-gray-600">${safeDeadline}</p>
                     </div>
                 </div>
-                
+
                 ${task.subtasks.length > 0 ? `
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Подзадачи</label>
@@ -171,7 +199,7 @@ class MBKanban {
                             ${task.subtasks.map(subtask => `
                                 <div class="flex items-center text-sm">
                                     <i class="fas ${subtask.completed ? 'fa-check-square text-green-500' : 'fa-square text-gray-400'} mr-2"></i>
-                                    <span class="${subtask.completed ? 'line-through text-gray-500' : 'text-gray-700'}">${subtask.text}</span>
+                                    <span class="${subtask.completed ? 'line-through text-gray-500' : 'text-gray-700'}">${sanitizeHTML(subtask.text)}</span>
                                 </div>
                             `).join('')}
                         </div>

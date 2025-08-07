@@ -2,19 +2,23 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs-extra');
 const path = require('path');
-const matter = require('gray-matter');
-const marked = require('marked');
 
 const app = express();
-const PORT = 8823;
+const PORT = process.env.PORT || 8823;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : '*' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.static('public', { maxAge: '1h' }));
 
 // Путь к банку памяти
-const MEMORY_BANK_PATH = '../memory-bank-data';
+const MEMORY_BANK_PATH = path.resolve(__dirname, '..', 'memory-bank-data');
+
+// Валидация имени проекта для безопасности
+function isValidProjectName(name) {
+    return /^[a-zA-Z0-9_-]+$/.test(name);
+}
 
 // Функция для парсинга задач из markdown файлов
 function parseTasksFromMarkdown(content) {
@@ -162,6 +166,16 @@ app.get('/api/projects', async (req, res) => {
 app.get('/api/projects/:project/tasks', async (req, res) => {
     try {
         const { project } = req.params;
+        /*
+        // CODEX_ISSUE: Missing validation for path parameters
+        // PROBLEM: Using unvalidated user input in file paths can lead to directory traversal attacks.
+        // IMPACT: Attackers could access data outside of the intended project scope.
+        // SOLUTION: Reject requests with disallowed characters before constructing paths.
+        // ALTERNATIVE: Normalize the path and ensure it stays within the base directory.
+        */
+        if (!isValidProjectName(project)) {
+            return res.status(400).json({ error: 'Invalid project name' });
+        }
         const tasksPath = path.join(MEMORY_BANK_PATH, project, 'tasks.md');
         
         if (!await fs.pathExists(tasksPath)) {
@@ -183,7 +197,10 @@ app.put('/api/projects/:project/tasks/:taskId/status', async (req, res) => {
     try {
         const { project, taskId } = req.params;
         const { status } = req.body;
-        
+
+        if (!isValidProjectName(project)) {
+            return res.status(400).json({ error: 'Invalid project name' });
+        }
         const tasksPath = path.join(MEMORY_BANK_PATH, project, 'tasks.md');
         
         if (!await fs.pathExists(tasksPath)) {
@@ -220,6 +237,9 @@ app.put('/api/projects/:project/tasks/:taskId/status', async (req, res) => {
 app.get('/api/projects/:project/stats', async (req, res) => {
     try {
         const { project } = req.params;
+        if (!isValidProjectName(project)) {
+            return res.status(400).json({ error: 'Invalid project name' });
+        }
         const tasksPath = path.join(MEMORY_BANK_PATH, project, 'tasks.md');
         
         if (!await fs.pathExists(tasksPath)) {
