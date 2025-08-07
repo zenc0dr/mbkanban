@@ -1,12 +1,7 @@
 // MBKanban App
 
-// Sanitize user-provided text before injecting into the DOM
+// Санитизация HTML для защиты от XSS
 function sanitizeHTML(str) {
-    // CODEX_ISSUE: Unsanitized user content in DOM
-    // PROBLEM: Directly inserting untrusted text can execute malicious scripts (XSS).
-    // IMPACT: Attackers could run arbitrary code in the user's browser.
-    // SOLUTION: Escape HTML special characters before rendering.
-    // ALTERNATIVE: Use a dedicated library such as DOMPurify for advanced sanitization.
     return String(str).replace(/[&<>"']/g, char => ({
         '&': '&amp;',
         '<': '&lt;',
@@ -33,13 +28,6 @@ class MBKanban {
     async loadProjects() {
         try {
             const response = await fetch('/api/projects');
-            /*
-            // CODEX_ISSUE: Missing HTTP status validation
-            // PROBLEM: Parsing JSON from a failed request throws confusing errors.
-            // IMPACT: Users receive generic failures instead of actionable messages.
-            // SOLUTION: Check response.ok and throw an explicit error when the server responds with an error status.
-            // ALTERNATIVE: Inspect specific status codes for custom handling.
-            */
             if (!response.ok) {
                 throw new Error('Failed to load projects');
             }

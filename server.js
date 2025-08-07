@@ -2,70 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs-extra');
 const path = require('path');
-/*
-// CODEX_ISSUE: Unused dependencies 'gray-matter' and 'marked'
-// PROBLEM: Importing unused modules wastes memory and can introduce unnecessary security vulnerabilities.
-// IMPACT: Increases attack surface and slows down application startup for no benefit.
-// SOLUTION: Remove these imports until markdown parsing is actually required.
-// ALTERNATIVE: Use dynamic imports when the feature is implemented.
-*/
-// const matter = require('gray-matter');
-// const marked = require('marked');
 
 const app = express();
-/*
-// CODEX_ISSUE: Hardcoded server port
-// PROBLEM: Fixed ports make deployment to cloud environments or shared hosts difficult.
-// IMPACT: Application may fail to start if the port is already in use.
-// SOLUTION: Allow configuration via the PORT environment variable with a safe default.
-// ALTERNATIVE: Use a configuration file or command-line arguments for runtime options.
-*/
 const PORT = process.env.PORT || 8823;
 
 // Middleware
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-/*
-// CODEX_ISSUE: Unrestricted CORS configuration
-// PROBLEM: Allowing requests from any origin exposes the API to CSRF and data exfiltration risks.
-// IMPACT: Malicious sites could interact with the API without user consent.
-// SOLUTION: Restrict origins via an environment-controlled whitelist while preserving backwards compatibility.
-// ALTERNATIVE: Configure CORS per-route or use a more comprehensive security middleware.
-*/
 app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : '*' }));
-/*
-// CODEX_ISSUE: Unlimited JSON payload size
-// PROBLEM: Large request bodies can exhaust server memory leading to denial of service.
-// IMPACT: Server crashes or degraded performance under heavy load.
-// SOLUTION: Impose a reasonable limit on JSON body size.
-// ALTERNATIVE: Stream large uploads to disk instead of keeping them in memory.
-*/
 app.use(express.json({ limit: '1mb' }));
-/*
-// CODEX_ISSUE: Static assets served without caching
-// PROBLEM: Browsers must fetch unchanged assets on every request, increasing load times.
-// IMPACT: Higher bandwidth usage and slower user experience.
-// SOLUTION: Enable cache headers with a modest max-age.
-// ALTERNATIVE: Serve assets through a CDN for better caching.
-*/
 app.use(express.static('public', { maxAge: '1h' }));
 
 // Путь к банку памяти
-/*
-// CODEX_ISSUE: Relative memory bank path
-// PROBLEM: Relative paths depend on the current working directory and can lead to file resolution errors.
-// IMPACT: The application might read or write unexpected files if executed from another directory.
-// SOLUTION: Resolve to an absolute path based on the server location.
-// ALTERNATIVE: Accept the path through configuration.
-*/
 const MEMORY_BANK_PATH = path.resolve(__dirname, '..', 'memory-bank-data');
 
-/*
-// CODEX_ISSUE: Potential path traversal via project parameter
-// PROBLEM: Using unsanitized user input in file paths allows access outside the intended directory.
-// IMPACT: Attackers could read or modify arbitrary files on the server.
-// SOLUTION: Validate project names against a strict whitelist before constructing paths.
-// ALTERNATIVE: Normalize paths and ensure they remain inside the base directory.
-*/
+// Валидация имени проекта для безопасности
 function isValidProjectName(name) {
     return /^[a-zA-Z0-9_-]+$/.test(name);
 }
